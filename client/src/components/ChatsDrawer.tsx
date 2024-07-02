@@ -79,9 +79,9 @@ export default function ChatsDrawer() {
   }
 
   return (
-    <div className='flex border'>
+    <div className='flex'>
       <Drawer variant="permanent" open={open}>
-        <DrawerHeader className='flex flex-col justify-center items-center'>
+        <DrawerHeader className='flex flex-col justify-center items-center mt-4'>
           <List className='w-full flex flex-col items-center justify-center '>
             {open
               ? (
