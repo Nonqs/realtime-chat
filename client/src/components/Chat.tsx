@@ -5,6 +5,7 @@ import SendIcon from '@mui/icons-material/Send';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import axios from 'axios';
 import { Messages } from "../types/types";
+import API_CONSTANTS from "../services/config.d";
 
 const VisuallyHiddenInput = styled('input')({
     clip: 'rect(0 0 0 0)',
@@ -37,6 +38,7 @@ export function Chat() {
 
     const [selectedFile, setSelectedFile] = useState<File | null>(null)
     const [openModal, setOpenModal] = useState(false)
+    const [message, setMessage] = useState("")
     const handleOpenModal = () => setOpenModal(true)
     const handleCloseModal = () => setOpenModal(false)
 
@@ -68,18 +70,36 @@ export function Chat() {
         formData.append('file', selectedFile)
         formData.append('sender', "Tomas")
         formData.append('recipient', "Maya")
-
         try {
-            const response = await axios.post('/messages/image', formData, {
+
+            const response = await axios.post(`${API_CONSTANTS.BACKEND_URL}/messages/image`, formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                 },
-            })
+            });
             console.log('Imagen subida con éxito:', response.data)
             setSelectedFile(null)
             handleCloseModal()
         } catch (error) {
             console.error('Error subiendo la imagen', error)
+        }
+    }
+
+    const handleUploadMessage = async () => {
+        if (!message) return
+
+        try {
+
+            const response = await axios.post(`${API_CONSTANTS.BACKEND_URL}/messages`, {
+                message,
+                recipient: "Maya",
+                sender: "Tomas"
+            });
+            console.log('Mensaje subido con éxito:', response.data)
+            setSelectedFile(null)
+            handleCloseModal()
+        } catch (error) {
+            console.error('Error subiendo el mensaje', error)
         }
     }
 
@@ -154,9 +174,9 @@ export function Chat() {
                         </MenuItem>
                     </Menu>
                 </div>
-                <Input disableUnderline type="text" placeholder="type a message" className="w-full" />
-                <IconButton >
-                    <SendIcon />
+                <Input disableUnderline type="text" placeholder="type a message" className="w-full" onChange={(e)=>{setMessage(e.target.value)}}/>
+                <IconButton onClick={handleUploadMessage}>
+                    <SendIcon/>
                 </IconButton>
             </Paper >
 
@@ -165,7 +185,7 @@ export function Chat() {
                 onClose={handleCloseModal}
                 aria-labelledby="modal-modal-title"
                 aria-describedby="modal-modal-description"
-                
+
             >
                 <Box sx={modalStyle}>
                     {selectedFile && (
