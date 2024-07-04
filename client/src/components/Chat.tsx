@@ -1,4 +1,4 @@
-import { Button, Fade, IconButton, Input, Menu, MenuItem, Paper, styled, Modal, Box, CircularProgress } from "@mui/material";
+import { Button, Fade, IconButton, Input, Menu, Modal, MenuItem, Paper, styled, Box, CircularProgress } from "@mui/material";
 import { ChangeEvent, useState } from "react";
 import AddIcon from '@mui/icons-material/Add';
 import SendIcon from '@mui/icons-material/Send';
@@ -49,9 +49,9 @@ export function Chat() {
         transform: 'translate(-50%, -50%)',
         width: 400,
         bgcolor: 'background.paper',
-        border: '2px solid #000',
         boxShadow: 24,
         p: 4,
+        borderRadius: "20px"
     }
 
     const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
