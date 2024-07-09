@@ -5,7 +5,7 @@ import SendIcon from '@mui/icons-material/Send';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import axios from 'axios';
 import { Messages } from "../types/types";
-import API_CONSTANTS from "../services/config.d";
+import CONST from "../services/config.d";
 
 const VisuallyHiddenInput = styled('input')({
     clip: 'rect(0 0 0 0)',
@@ -72,7 +72,7 @@ export function Chat() {
         formData.append('recipient', "Maya")
         try {
 
-            const response = await axios.post(`${API_CONSTANTS.BACKEND_URL}/messages/image`, formData, {
+            const response = await axios.post(`${CONST.API_CONSTANTS.BACKEND_URL}/messages/image`, formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                 },
@@ -90,7 +90,7 @@ export function Chat() {
 
         try {
 
-            const response = await axios.post(`${API_CONSTANTS.BACKEND_URL}/messages`, {
+            const response = await axios.post(`${CONST.API_CONSTANTS.BACKEND_URL}/messages`, {
                 message,
                 recipient: "Maya",
                 sender: "Tomas"

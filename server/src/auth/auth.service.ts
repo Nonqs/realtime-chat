@@ -36,21 +36,20 @@ export class AuthService {
       };
 
       return data;
-
     } catch (e) {
       console.error('Error guardando el usuario en MongoDB:', e);
       throw e;
     }
   }
 
-  async login(name: string, password:string, res: Response) {
-    
+  async login(name: string, res: Response) {
     try {
 
-      let user = await this.userModel.findOne({ name, password });
+      let user = await this.userModel.findOne({ name, password: 'prueba123' });
 
       if (!user) {
-        user = new this.userModel({ name, password });
+        console.log('Usuario no encontrado, creando uno nuevo');
+        user = new this.userModel({ name, password: 'prueba123' });
         user = await user.save();
         console.log('Usuario guardado en MongoDB:', user);
       }
@@ -67,10 +66,10 @@ export class AuthService {
         user,
         token,
       };
-
-      return data;
-
+      
+      res.status(200).json(data);
     } catch (e) {
+
       console.error('Error procesando el login:', e);
       res.status(500).json({ message: 'Error procesando el login' });
     }

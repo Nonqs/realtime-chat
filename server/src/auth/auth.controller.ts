@@ -13,7 +13,7 @@ export class AuthController {
     }
 
     @Post("login")
-    loginUser(@Body() {name, password}: {name: string, password:string}, @Res()res: Response){
-        return this.authService.login(name, password, res)
+    loginUser(@Body() {name}: {name: string}, @Res()res: Response){
+        return this.authService.login(name, res)
     }
 }
