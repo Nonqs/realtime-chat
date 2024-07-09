@@ -1,240 +1,271 @@
-import { Button, Fade, IconButton, Input, Menu, Modal, MenuItem, Paper, styled, Box, CircularProgress } from "@mui/material";
-import { ChangeEvent, useState } from "react";
-import AddIcon from '@mui/icons-material/Add';
-import SendIcon from '@mui/icons-material/Send';
-import CloudUploadIcon from '@mui/icons-material/CloudUpload';
-import axios from 'axios';
-import { Messages } from "../types/types";
+import {
+  Button,
+  Fade,
+  IconButton,
+  Input,
+  Menu,
+  Modal,
+  MenuItem,
+  Paper,
+  styled,
+  Box,
+  CircularProgress,
+} from "@mui/material";
+import { ChangeEvent, useEffect, useState } from "react";
+import AddIcon from "@mui/icons-material/Add";
+import SendIcon from "@mui/icons-material/Send";
+import CloudUploadIcon from "@mui/icons-material/CloudUpload";
+import axios from "axios";
+import { ChatMessages, Messages } from "../types/types";
 import CONST from "../services/config.d";
+import { useUserContext } from "../context/UserActiveContext";
 
-const VisuallyHiddenInput = styled('input')({
-    clip: 'rect(0 0 0 0)',
-    clipPath: 'inset(50%)',
-    height: 1,
-    overflow: 'hidden',
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    whiteSpace: 'nowrap',
-    width: 1,
-})
+const VisuallyHiddenInput = styled("input")({
+  clip: "rect(0 0 0 0)",
+  clipPath: "inset(50%)",
+  height: 1,
+  overflow: "hidden",
+  position: "absolute",
+  bottom: 0,
+  left: 0,
+  whiteSpace: "nowrap",
+  width: 1,
+});
 
 export function Chat() {
-    const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-    const open = Boolean(anchorEl);
-    const handleClick = (event: React.MouseEvent<HTMLElement>) => {
-        setAnchorEl(event.currentTarget);
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const { user } = useUserContext()
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [openModal, setOpenModal] = useState(false);
+  const [message, setMessage] = useState("");
+  const [chatMessages, setChatMessages] = useState<ChatMessages[]>([])
+
+  const handleOpenModal = () => setOpenModal(true);
+  const handleCloseModal = () => setOpenModal(false);
+  const open = Boolean(anchorEl);
+  const handleClick = (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
+  const handleClose = () => {
+    setAnchorEl(null);
+  };
+
+
+  const modalStyle = {
+    position: "absolute",
+    top: "50%",
+    left: "50%",
+    transform: "translate(-50%, -50%)",
+    width: 400,
+    bgcolor: "background.paper",
+    boxShadow: 24,
+    p: 4,
+    borderRadius: "20px",
+  };
+
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      setSelectedFile(e.target.files[0]);
+      handleOpenModal();
+      handleClose();
     }
-    const handleClose = () => {
-        setAnchorEl(null);
-    }
+  };
 
-    const messages: Messages[] = [
-        { message: "Hola", id: 1 },
-        { message: "Hola", id: 2 },
-        { message: "Holaaaaaaa", id: 1 },
-        { message: "Holaaaaaaa", id: 2 }
-    ]
+  const handleUploadImage = async () => {
+    if (!selectedFile) return;
 
-    const [selectedFile, setSelectedFile] = useState<File | null>(null)
-    const [openModal, setOpenModal] = useState(false)
-    const [message, setMessage] = useState("")
-    const handleOpenModal = () => setOpenModal(true)
-    const handleCloseModal = () => setOpenModal(false)
-
-    const modalStyle = {
-        position: 'absolute',
-        top: '50%',
-        left: '50%',
-        transform: 'translate(-50%, -50%)',
-        width: 400,
-        bgcolor: 'background.paper',
-        boxShadow: 24,
-        p: 4,
-        borderRadius: "20px"
-    }
-
-    const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
-
-        if (e.target.files) {
-            setSelectedFile(e.target.files[0])
-            handleOpenModal()
-            handleClose()
+    const formData = new FormData();
+    formData.append("file", selectedFile);
+    formData.append("sender", user);
+    formData.append("recipient", user == "Tomas" ?"Maya" : "Tomas");
+    try {
+      const response = await axios.post(
+        `${CONST.API_CONSTANTS.BACKEND_URL}/messages/image`,
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+          withCredentials: true,
         }
+      );
+      console.log("Imagen subida con éxito:", response.data);
+      setSelectedFile(null);
+      handleCloseModal();
+    } catch (error) {
+      console.error("Error subiendo la imagen", error);
     }
+  };
 
-    const handleUploadImage = async () => {
-        if (!selectedFile) return
+  const handleUploadMessage = async () => {
+    if (!message) return;
 
-        const formData = new FormData()
-        formData.append('file', selectedFile)
-        formData.append('sender', "Tomas")
-        formData.append('recipient', "Maya")
-        try {
-
-            const response = await axios.post(`${CONST.API_CONSTANTS.BACKEND_URL}/messages/image`, formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                },
-            });
-            console.log('Imagen subida con éxito:', response.data)
-            setSelectedFile(null)
-            handleCloseModal()
-        } catch (error) {
-            console.error('Error subiendo la imagen', error)
-        }
+    try {
+      const response = await axios.post(
+        `${CONST.API_CONSTANTS.BACKEND_URL}/messages`,
+        {
+          message,
+          recipient: "Maya",
+          sender: "Tomas",
+        },
+        { withCredentials: true }
+      );
+      setSelectedFile(null);
+      handleCloseModal();
+    } catch (error) {
+      console.error("Error subiendo el mensaje", error);
     }
+  };
 
-    const handleUploadMessage = async () => {
-        if (!message) return
+  useEffect(() => {
+    const getMessages = async () => {
+      const response = await axios.get(
+        `${CONST.API_CONSTANTS.BACKEND_URL}/messages`,
+        { withCredentials: true }
+      );
 
-        try {
+      const data = response.data;
+      setChatMessages(data)
+    };
 
-            const response = await axios.post(`${CONST.API_CONSTANTS.BACKEND_URL}/messages`, {
-                message,
-                recipient: "Maya",
-                sender: "Tomas"
-            });
-            console.log('Mensaje subido con éxito:', response.data)
-            setSelectedFile(null)
-            handleCloseModal()
-        } catch (error) {
-            console.error('Error subiendo el mensaje', error)
-        }
-    }
+    getMessages();
+  }, []);
 
-    return (
-        <div className="flex flex-col w-full h-full justify-end items-end">
+  return (
+    <div className="flex flex-col w-full h-full justify-end items-end">
+      <div className="w-full">
+        {chatMessages.map((message, index) => (
+          <div key={index} className="w-full">
+            {message.sender == user ? (
+              <article className="flex w-auto justify-end">
+                <Paper
+                  className="p-5 m-2"
+                  sx={{
+                    backgroundColor: "#2563eb",
+                    color: "white",
+                  }}
+                >
+                  <span>{message.message}</span>
+                </Paper>
+              </article>
+            ) : (
+              <article className="flex w-auto justify-start">
+                <Paper className="p-5 m-2">
+                  <span>{message.message}</span>
+                </Paper>
+              </article>
+            )}
+          </div>
+        ))}
+      </div>
+      <Paper className="relative flex w-full h-10" square={true} elevation={2}>
+        <div>
+          <IconButton
+            className="h-full"
+            id="fade-button"
+            aria-controls={open ? "fade-menu" : undefined}
+            aria-haspopup="true"
+            aria-expanded={open ? "true" : undefined}
+            onClick={handleClick}
+          >
+            <AddIcon />
+          </IconButton>
+          <Menu
+            id="fade-menu"
+            MenuListProps={{
+              "aria-labelledby": "fade-button",
+            }}
+            anchorEl={anchorEl}
+            open={open}
+            onClose={handleClose}
+            TransitionComponent={Fade}
+          >
+            <MenuItem>
+              <Button
+                component="label"
+                role={undefined}
+                variant="contained"
+                tabIndex={-1}
+                startIcon={<CloudUploadIcon />}
+                sx={{
+                  backgroundColor: "#2563eb",
+                  "&:hover": {
+                    backgroundColor: "#60a5fa",
+                  },
+                  color: "white",
+                }}
+              >
+                Upload file
+                <VisuallyHiddenInput type="file" onChange={handleFileChange} />
+              </Button>
+            </MenuItem>
+          </Menu>
+        </div>
+        <Input
+          disableUnderline
+          type="text"
+          placeholder="type a message"
+          className="w-full"
+          onChange={(e) => {
+            setMessage(e.target.value);
+          }}
+        />
+        <IconButton onClick={handleUploadMessage}>
+          <SendIcon />
+        </IconButton>
+      </Paper>
+
+      <Modal
+        open={openModal}
+        onClose={handleCloseModal}
+        aria-labelledby="modal-modal-title"
+        aria-describedby="modal-modal-description"
+      >
+        <Box sx={modalStyle}>
+          {selectedFile && (
             <div className="w-full">
-                {messages.map((message, index) => (
-                    <div key={index} className="w-full">
-                        {message.id == 1
-                            ? (
-                                <article className="flex w-auto justify-end">
-                                    <Paper className="p-5 m-2"
-                                        sx={{
-                                            backgroundColor: "#2563eb",
-                                            color: "white"
-                                        }}
-                                    >
-                                        <span>{message.message}</span>
-                                    </Paper>
-                                </article>
-                            ) : (
-                                <article className="flex w-auto justify-start">
-                                    <Paper className="p-5 m-2">
-                                        <span>{message.message}</span>
-                                    </Paper>
-                                </article>
-                            )
-                        }
-                    </div>
-                ))}
+              {URL.createObjectURL(selectedFile) ? (
+                <img
+                  className="shadow-2xl"
+                  src={URL.createObjectURL(selectedFile)}
+                  alt="Selected Preview"
+                  style={{ width: "100%", height: "auto" }}
+                />
+              ) : (
+                <CircularProgress />
+              )}
+              <article className="w-full flex justify-around mt-5">
+                <Button
+                  component="label"
+                  role={undefined}
+                  variant="contained"
+                  tabIndex={-1}
+                  sx={{
+                    backgroundColor: "#2563eb",
+                    "&:hover": {
+                      backgroundColor: "#60a5fa",
+                    },
+                    color: "white",
+                  }}
+                  onClick={handleUploadImage}
+                >
+                  Send
+                </Button>
+                <Button
+                  component="label"
+                  role={undefined}
+                  variant="contained"
+                  tabIndex={-1}
+                  color={"error"}
+                  onClick={handleCloseModal}
+                >
+                  Cancel
+                </Button>
+              </article>
             </div>
-            <Paper className="relative flex w-full h-10" square={true} elevation={2}>
-                <div>
-                    <IconButton
-                        className="h-full"
-                        id="fade-button"
-                        aria-controls={open ? 'fade-menu' : undefined}
-                        aria-haspopup="true"
-                        aria-expanded={open ? 'true' : undefined}
-                        onClick={handleClick}
-                    >
-                        <AddIcon />
-                    </IconButton>
-                    <Menu
-                        id="fade-menu"
-                        MenuListProps={{
-                            'aria-labelledby': 'fade-button',
-                        }}
-                        anchorEl={anchorEl}
-                        open={open}
-                        onClose={handleClose}
-                        TransitionComponent={Fade}
-                    >
-                        <MenuItem>
-                            <Button
-                                component="label"
-                                role={undefined}
-                                variant="contained"
-                                tabIndex={-1}
-                                startIcon={<CloudUploadIcon />}
-                                sx={{
-                                    backgroundColor: "#2563eb",
-                                    '&:hover': {
-                                        backgroundColor: '#60a5fa',
-                                    },
-                                    color: "white"
-                                }}
-                            >
-                                Upload file
-                                <VisuallyHiddenInput type="file" onChange={handleFileChange} />
-                            </Button>
-                        </MenuItem>
-                    </Menu>
-                </div>
-                <Input disableUnderline type="text" placeholder="type a message" className="w-full" onChange={(e)=>{setMessage(e.target.value)}}/>
-                <IconButton onClick={handleUploadMessage}>
-                    <SendIcon/>
-                </IconButton>
-            </Paper >
-
-            <Modal
-                open={openModal}
-                onClose={handleCloseModal}
-                aria-labelledby="modal-modal-title"
-                aria-describedby="modal-modal-description"
-
-            >
-                <Box sx={modalStyle}>
-                    {selectedFile && (
-                        <div className="w-full">
-                            {URL.createObjectURL(selectedFile)
-                                ? (
-                                    <img
-                                        className="shadow-2xl"
-                                        src={URL.createObjectURL(selectedFile)}
-                                        alt="Selected Preview"
-                                        style={{ width: '100%', height: 'auto' }}
-                                    />
-                                )
-                                : (
-                                    <CircularProgress />
-                                )
-                            }
-                            <article className="w-full flex justify-around mt-5">
-                                <Button
-                                    component="label"
-                                    role={undefined}
-                                    variant="contained"
-                                    tabIndex={-1}
-                                    sx={{
-                                        backgroundColor: "#2563eb",
-                                        '&:hover': {
-                                            backgroundColor: '#60a5fa',
-                                        },
-                                        color: "white"
-                                    }}
-                                    onClick={handleUploadImage}
-                                >
-                                    Send
-                                </Button>
-                                <Button
-                                    component="label"
-                                    role={undefined}
-                                    variant="contained"
-                                    tabIndex={-1}
-                                    color={"error"}
-                                    onClick={handleCloseModal}
-                                >
-                                    Cancel
-                                </Button>
-                            </article>
-                        </div>
-                    )}
-                </Box>
-            </Modal>
-        </div >
-    );
+          )}
+        </Box>
+      </Modal>
+    </div>
+  );
 }

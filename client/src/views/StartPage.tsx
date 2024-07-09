@@ -1,19 +1,19 @@
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import { Button, IconButton, Tooltip } from "@mui/material";
-import { useState } from "react";
 import CONST from "../services/config.d";
 import axios from "axios";
-import { Navigate, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import { useUserContext } from "../context/UserActiveContext";
 
 export default function StartPage() {
+
   const toolTipText =
     "This chat application works using socket.io, a library that enables real-time, bidirectional communication between clients and the server. When a user opens the chat, they connect to the server via a WebSocket. To see it in action, open the chat page in two browser tabs, log in as user1 in one tab and User2 in the other. Messages sent from one user will instantly appear in the other user's chat window, demonstrating real-time communication.";
-  const [name, setName] = useState("");
   const navigate = useNavigate();
+  const { updateUser } = useUserContext()
 
-  const handleLogin = async () => {
+  const handleLogin = async (name: string) => {
     try {
-
       const response = await axios.post(
         `${CONST.API_CONSTANTS.BACKEND_URL}/auth/login`,
         {
@@ -21,10 +21,10 @@ export default function StartPage() {
         },
         { withCredentials: true }
       );
-      console.log("Mensaje subido con éxito:", response.data);
     } catch (error) {
       console.error("Error subiendo el mensaje", error);
     }
+    updateUser()
     navigate("/chat");
   };
 
@@ -58,7 +58,7 @@ export default function StartPage() {
             marginBottom: "2em",
           }}
           onClick={() => {
-            setName(CONST.USER_LOGIN.NAME), handleLogin();
+            handleLogin(CONST.USER_LOGIN.NAME);
           }}
         >
           Usuario 1
@@ -75,7 +75,7 @@ export default function StartPage() {
             color: "white",
           }}
           onClick={() => {
-            setName(CONST.USER_LOGIN.NAME2), handleLogin();
+            handleLogin(CONST.USER_LOGIN.NAME2);
           }}
         >
           Usuario 2

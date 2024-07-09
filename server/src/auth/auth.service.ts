@@ -48,7 +48,7 @@ export class AuthService {
       let user = await this.userModel.findOne({ name, password: 'prueba123' });
 
       if (!user) {
-        console.log('Usuario no encontrado, creando uno nuevo');
+        
         user = new this.userModel({ name, password: 'prueba123' });
         user = await user.save();
         console.log('Usuario guardado en MongoDB:', user);

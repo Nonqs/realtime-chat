@@ -1,16 +1,16 @@
-import './styles/App.css';
-import { RoutesView } from './routes/routes';
-import { ThemeProviderComponent } from './context/ThemeContext';
-
+import "./styles/App.css";
+import { RoutesView } from "./routes/routes";
+import { ThemeProviderComponent } from "./context/ThemeContext";
+import { UserProvider } from "./context/UserActiveContext";
 
 function App() {
- 
-
   return (
-    <ThemeProviderComponent>
-      <RoutesView />
-    </ThemeProviderComponent>
-  )
+    <UserProvider>
+      <ThemeProviderComponent>
+        <RoutesView />
+      </ThemeProviderComponent>
+    </UserProvider>
+  );
 }
 
-export default App
+export default App;
