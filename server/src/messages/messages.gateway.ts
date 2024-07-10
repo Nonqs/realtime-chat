@@ -8,8 +8,9 @@ import {
   OnGatewayDisconnect,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
+import * as jwt from 'jsonwebtoken';
 import { MessagesService } from './messages.service';
-import { MessageDataDto } from './dto/messages.dto';
+import { DecodeDto } from './dto/messages.dto';
 
 @WebSocketGateway({
   cors: {
@@ -24,16 +25,42 @@ export class MessagesGateway
   @WebSocketServer()
   server: Server;
 
+  private users: Map<string, string> = new Map();
+
   constructor(private readonly messageService: MessagesService) {}
 
-  handleConnection(client: Socket) {
-    console.log('New client connected', client.id);
+  async handleConnection(client: Socket) {
+    try {
+      const cookies = client.handshake.headers.cookie;
+      const token = cookies
+        .split('; ')
+        .find((c) => c.startsWith('token='))
+        .split('=')[1];
+      const decoded = jwt.decode(token) as DecodeDto;
+      if (this.users.has(decoded.name)) {
+        const existingSocketId = this.users.get(decoded.name);
+        const existingSocket =
+          this.server.sockets.sockets.get(existingSocketId);
+        if (existingSocket) {
+          existingSocket.disconnect();
+        }
+      }
+      this.users.set(decoded.name, client.id);
+      console.log(`User ${decoded.name} connected with socket ${client.id}`);
+    } catch (error) {
+      console.log('Unauthorized', error.message);
+      client.disconnect();
+    }
   }
 
   handleDisconnect(client: Socket) {
     console.log('Client disconnected', client.id);
+    this.users.forEach((value, key) => {
+      if (value === client.id) {
+        this.users.delete(key);
+      }
+    });
   }
-
 
   @SubscribeMessage('message')
   async handleMessage(
@@ -48,6 +75,9 @@ export class MessagesGateway
       data.recipient,
     );
 
-    this.server.emit('message', data);
+    const recipientSocketId = this.users.get(data.recipient);
+    if (recipientSocketId) {
+      this.server.to(recipientSocketId).emit('message', data);
+    }
   }
 }

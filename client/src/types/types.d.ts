@@ -6,9 +6,9 @@ export interface Messages {
 export interface ChatMessages {
     _id: string;
     message: string;
-    recipient: string;
     sender: string;
-    timestamp: string;
-    type: string;
-    __v: number;
+    recipient: string;
+    timestamp: string; 
+    type: string; 
+    __v?: number;
   }

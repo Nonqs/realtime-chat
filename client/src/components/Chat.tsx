@@ -11,7 +11,7 @@ import {
   Box,
   CircularProgress,
 } from "@mui/material";
-import { ChangeEvent, useEffect, useState } from "react";
+import { ChangeEvent, useEffect, useMemo, useState } from "react";
 import AddIcon from "@mui/icons-material/Add";
 import SendIcon from "@mui/icons-material/Send";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
@@ -19,7 +19,7 @@ import axios from "axios";
 import { ChatMessages, Messages } from "../types/types";
 import CONST from "../services/config.d";
 import { useUserContext } from "../context/UserActiveContext";
-import { io } from 'socket.io-client';
+import { io } from "socket.io-client";
 
 const VisuallyHiddenInput = styled("input")({
   clip: "rect(0 0 0 0)",
@@ -40,9 +40,6 @@ export function Chat() {
   const [openModal, setOpenModal] = useState(false);
   const [message, setMessage] = useState("");
   const [chatMessages, setChatMessages] = useState<ChatMessages[]>([]);
-  const socket = io(CONST.API_CONSTANTS.BACKEND_URL, {
-    withCredentials: true
-  });
 
   const handleOpenModal = () => setOpenModal(true);
   const handleCloseModal = () => setOpenModal(false);
@@ -82,7 +79,7 @@ export function Chat() {
       );
 
       const data = response.data;
-      setChatMessages(data)
+      setChatMessages(data);
     };
 
     getMessages();
@@ -114,36 +111,57 @@ export function Chat() {
     }
   };
 
-  useEffect(() => {
+  const socket = useMemo(
+    () =>
+      io(CONST.API_CONSTANTS.BACKEND_URL, {
+        withCredentials: true, // Esto asegura que las cookies se envíen con la solicitud
+      }),
+    []
+  );
 
-    socket.on('connect', () => {
-      console.log('Conectado al servidor WebSocket');
+  useEffect(() => {
+    socket.on("connect", () => {
+      console.log("Conectado al servidor WebSocket");
     });
 
-    socket.on('message', (data) => {
-      console.log('Mensaje recibido del servidor:', data);
+    socket.on("message", (data: ChatMessages) => {
+      console.log("Mensaje recibido del servidor:", data);
       setChatMessages((prevMessages) => [...prevMessages, data]);
     });
 
-    socket.on('disconnect', () => {
-      console.log('Desconectado del servidor WebSocket');
+    socket.on("disconnect", () => {
+      console.log("Desconectado del servidor WebSocket");
     });
 
     return () => {
       socket.disconnect();
     };
-  }, []);
+  }, [socket]);
 
-  const handleUploadMessage = () => {
+  const handleUploadMessage = (e: React.FormEvent) => {
+    e.preventDefault();
     if (!message) return;
 
-    socket.emit('message', {
+    const newMessage: ChatMessages = {
+      _id: new Date().toISOString(), // Usa un identificador único real en producción
       message,
-      recipient: user == "Tomas" ? "Maya" : "Tomas",
+      recipient: user === "Tomas" ? "Maya" : "Tomas",
       sender: user,
-    });
+      timestamp: new Date().toISOString(),
+      type: "text",
+    };
 
-    setMessage('');
+    socket.emit("message", newMessage);
+
+    // Actualizar el estado local inmediatamente
+    setChatMessages((prevMessages) => [...prevMessages, newMessage]);
+
+    setMessage("");
+  };
+
+  const formatTime = (timestamp: string) => {
+    const date = new Date(timestamp);
+    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   };
 
   return (
@@ -154,19 +172,25 @@ export function Chat() {
             {message.sender == user ? (
               <article className="flex w-auto justify-end">
                 <Paper
-                  className="p-5 m-2"
+                  className="p-5 m-2 relative"
                   sx={{
                     backgroundColor: "#2563eb",
                     color: "white",
                   }}
                 >
                   <span>{message.message}</span>
+                  <small className="absolute bottom-1 right-1 text-xs">
+                    {formatTime(message.timestamp)}
+                  </small>
                 </Paper>
               </article>
             ) : (
               <article className="flex w-auto justify-start">
-                <Paper className="p-5 m-2">
+                <Paper className="relative p-5 m-2">
                   <span>{message.message}</span>
+                  <small className="absolute bottom-1 right-1 text-xs">
+                    {formatTime(message.timestamp)}
+                  </small>
                 </Paper>
               </article>
             )}
@@ -216,18 +240,21 @@ export function Chat() {
             </MenuItem>
           </Menu>
         </div>
-        <Input
-          disableUnderline
-          type="text"
-          placeholder="type a message"
-          className="w-full"
-          onChange={(e) => {
-            setMessage(e.target.value);
-          }}
-        />
-        <IconButton onClick={handleUploadMessage}>
-          <SendIcon />
-        </IconButton>
+        <form onSubmit={handleUploadMessage} className="flex w-full">
+          <Input
+            disableUnderline
+            type="text"
+            placeholder="type a message"
+            className="w-full"
+            onChange={(e) => {
+              setMessage(e.target.value);
+            }}
+            value={message}
+          />
+          <IconButton onClick={handleUploadMessage}>
+            <SendIcon />
+          </IconButton>
+        </form>
       </Paper>
 
       <Modal
