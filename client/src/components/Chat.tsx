@@ -19,6 +19,7 @@ import axios from "axios";
 import { ChatMessages, Messages } from "../types/types";
 import CONST from "../services/config.d";
 import { useUserContext } from "../context/UserActiveContext";
+import { io } from 'socket.io-client';
 
 const VisuallyHiddenInput = styled("input")({
   clip: "rect(0 0 0 0)",
@@ -34,11 +35,14 @@ const VisuallyHiddenInput = styled("input")({
 
 export function Chat() {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const { user } = useUserContext()
+  const { user } = useUserContext();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [openModal, setOpenModal] = useState(false);
   const [message, setMessage] = useState("");
-  const [chatMessages, setChatMessages] = useState<ChatMessages[]>([])
+  const [chatMessages, setChatMessages] = useState<ChatMessages[]>([]);
+  const socket = io(CONST.API_CONSTANTS.BACKEND_URL, {
+    withCredentials: true
+  });
 
   const handleOpenModal = () => setOpenModal(true);
   const handleCloseModal = () => setOpenModal(false);
@@ -49,7 +53,6 @@ export function Chat() {
   const handleClose = () => {
     setAnchorEl(null);
   };
-
 
   const modalStyle = {
     position: "absolute",
@@ -71,13 +74,27 @@ export function Chat() {
     }
   };
 
+  useEffect(() => {
+    const getMessages = async () => {
+      const response = await axios.get(
+        `${CONST.API_CONSTANTS.BACKEND_URL}/messages`,
+        { withCredentials: true }
+      );
+
+      const data = response.data;
+      setChatMessages(data)
+    };
+
+    getMessages();
+  }, []);
+
   const handleUploadImage = async () => {
     if (!selectedFile) return;
 
     const formData = new FormData();
     formData.append("file", selectedFile);
     formData.append("sender", user);
-    formData.append("recipient", user == "Tomas" ?"Maya" : "Tomas");
+    formData.append("recipient", user == "Tomas" ? "Maya" : "Tomas");
     try {
       const response = await axios.post(
         `${CONST.API_CONSTANTS.BACKEND_URL}/messages/image`,
@@ -97,39 +114,37 @@ export function Chat() {
     }
   };
 
-  const handleUploadMessage = async () => {
+  useEffect(() => {
+
+    socket.on('connect', () => {
+      console.log('Conectado al servidor WebSocket');
+    });
+
+    socket.on('message', (data) => {
+      console.log('Mensaje recibido del servidor:', data);
+      setChatMessages((prevMessages) => [...prevMessages, data]);
+    });
+
+    socket.on('disconnect', () => {
+      console.log('Desconectado del servidor WebSocket');
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, []);
+
+  const handleUploadMessage = () => {
     if (!message) return;
 
-    try {
-      const response = await axios.post(
-        `${CONST.API_CONSTANTS.BACKEND_URL}/messages`,
-        {
-          message,
-          recipient: "Maya",
-          sender: "Tomas",
-        },
-        { withCredentials: true }
-      );
-      setSelectedFile(null);
-      handleCloseModal();
-    } catch (error) {
-      console.error("Error subiendo el mensaje", error);
-    }
+    socket.emit('message', {
+      message,
+      recipient: user == "Tomas" ? "Maya" : "Tomas",
+      sender: user,
+    });
+
+    setMessage('');
   };
-
-  useEffect(() => {
-    const getMessages = async () => {
-      const response = await axios.get(
-        `${CONST.API_CONSTANTS.BACKEND_URL}/messages`,
-        { withCredentials: true }
-      );
-
-      const data = response.data;
-      setChatMessages(data)
-    };
-
-    getMessages();
-  }, []);
 
   return (
     <div className="flex flex-col w-full h-full justify-end items-end">

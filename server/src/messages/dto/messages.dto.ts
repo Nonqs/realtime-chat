@@ -3,3 +3,9 @@ export class DecodeDto  {
   iat: number;
   exp: number;
 }
+
+export class MessageDataDto{
+  message: string
+  sender: string
+  recipient: string
+}

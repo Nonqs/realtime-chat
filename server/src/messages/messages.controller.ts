@@ -11,11 +11,11 @@ export class MessagesController {
 
     constructor(private messageService: MessagesService){}
 
-    @UseGuards(JwtAuthGuard)
-    @Post()
-    newMessage(@Body() {message}: {message: string},  @Req() req: Request){
-        return this.messageService.newMessageText(message, req)
-    }
+    // @UseGuards(JwtAuthGuard)
+    // @Post()
+    // newMessage(@Body() {message}: {message: string},  @Req() req: Request){
+    //     return this.messageService.newMessageText(message, req)
+    // }
 
     @UseGuards(JwtAuthGuard)
     @Post("image")

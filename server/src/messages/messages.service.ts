@@ -44,14 +44,10 @@ export class MessagesService {
 
   async newMessageText(
     message: string,
-    req: Request,
+    sender: string,
+    recipient: string
   ) {
 
-    const token = req.headers.authorization.split(' ')[1];
-    const decodeToken = jwt.decode(token) as DecodeDto;
-
-    const sender = decodeToken.name == "Tomas" ? "Tomas" : "Maya"
-    const recipient = decodeToken.name == "Tomas" ? "Maya" : "Tomas"
 
     const newMessage = new this.messageModel({
       sender,

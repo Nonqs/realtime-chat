@@ -26,6 +26,8 @@
     "@nestjs/mongoose": "^10.0.6",
     "@nestjs/passport": "^10.0.3",
     "@nestjs/platform-express": "^10.3.10",
+    "@nestjs/platform-socket.io": "^10.3.10",
+    "@nestjs/websockets": "^10.3.10",
     "bcryptjs": "^2.4.3",
     "cookie-parser": "^1.4.6",
     "mongoose": "^8.4.4",

@@ -4,9 +4,10 @@ import { MessagesController } from './messages.controller';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Message, MessageSchema } from 'schemas/message.schema';
 import { User, UserSchema } from 'schemas/user.schema';
+import { MessagesGateway } from './messages.gateway';
 
 @Module({
-  providers: [MessagesService],
+  providers: [MessagesService, MessagesGateway],
   controllers: [MessagesController],
   imports: [
     MongooseModule.forFeature([{ name: Message.name, schema: MessageSchema }]),
