@@ -1,18 +1,19 @@
-import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
-import { Button, IconButton, Tooltip } from "@mui/material";
+import { Button } from "@mui/material";
 import CONST from "../services/config.d";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { useUserContext } from "../context/UserActiveContext";
 import Navbar from "../components/Navbar";
 import github from "../public/github.svg";
-import chat from "../public/chat.png"
+import chat from "../public/chat.png";
+import { useState } from "react";
+import HowItWorks from "../components/HowItWorks";
 
 export default function StartPage() {
-  const toolTipText =
-    "This chat application works using socket.io, a library that enables real-time, bidirectional communication between clients and the server. When a user opens the chat, they connect to the server via a WebSocket. To see it in action, open the chat page in two browser tabs, log in as user1 in one tab and User2 in the other. Messages sent from one user will instantly appear in the other user's chat window, demonstrating real-time communication.";
+ 
   const navigate = useNavigate();
   const { updateUser } = useUserContext();
+  const [howItWorks, setHowItWorks] = useState<boolean>(true);
 
   const handleLogin = async (name: string) => {
     try {
@@ -30,57 +31,71 @@ export default function StartPage() {
     navigate("/chat");
   };
 
+  const handleButtonUpdate = () => {
+    setHowItWorks(!howItWorks);
+  };
+
+  const handleUpdate = () => {
+    setHowItWorks(true);
+  };
+
   return (
     <section className="w-full h-[100vh] flex flex-col items-center bg-gradient-to-r from-[#ddd6fe]  to-white to-90%">
-      <Navbar />
+      <Navbar handleButtonUpdate={handleButtonUpdate} handleUpdate={handleUpdate} />
       <div className="h-full w-full flex">
-        <div className="w-1/2 m-20">
-          <div className="h-1/2 w-full flex flex-col justify-center items-center">
-            <h2 className="text-center uppercase font-extrabold text-transparent text-6xl bg-clip-text bg-gradient-to-r from-[#2563eb] to-pink-600">
-              Welcome to <br />
-              Nest Chat!
-            </h2>
+        {howItWorks ? (
+          <div className="w-1/2 m-20">
+            <div className="h-1/2 w-full flex flex-col justify-center items-center">
+              <h2 className="text-center uppercase font-extrabold text-transparent text-6xl bg-clip-text bg-gradient-to-r from-[#2563eb] to-pink-600">
+                Welcome to <br />
+                Nest Chat!
+              </h2>
+            </div>
+            <div className="h-1/2 flex flex-col">
+              <Button
+                component="label"
+                variant="contained"
+                tabIndex={-1}
+                sx={{
+                  backgroundColor: "#2563eb",
+                  "&:hover": {
+                    backgroundColor: "#60a5fa",
+                  },
+                  color: "white",
+                  marginBottom: "2em",
+                }}
+                onClick={() => {
+                  handleLogin(CONST.USER_LOGIN.NAME);
+                }}
+              >
+                Usuario 1
+              </Button>
+              <Button
+                component="label"
+                variant="contained"
+                tabIndex={-1}
+                sx={{
+                  backgroundColor: "#db2777",
+                  "&:hover": {
+                    backgroundColor: "#fb7185",
+                  },
+                  color: "white",
+                }}
+                onClick={() => {
+                  handleLogin(CONST.USER_LOGIN.NAME2);
+                }}
+              >
+                Usuario 2
+              </Button>
+            </div>
           </div>
-          <div className="h-1/2 flex flex-col">
-            <Button
-              component="label"
-              variant="contained"
-              tabIndex={-1}
-              sx={{
-                backgroundColor: "#2563eb",
-                "&:hover": {
-                  backgroundColor: "#60a5fa",
-                },
-                color: "white",
-                marginBottom: "2em",
-              }}
-              onClick={() => {
-                handleLogin(CONST.USER_LOGIN.NAME);
-              }}
-            >
-              Usuario 1
-            </Button>
-            <Button
-              component="label"
-              variant="contained"
-              tabIndex={-1}
-              sx={{
-                backgroundColor: "#db2777",
-                "&:hover": {
-                  backgroundColor: "#fb7185",
-                },
-                color: "white",
-              }}
-              onClick={() => {
-                handleLogin(CONST.USER_LOGIN.NAME2);
-              }}
-            >
-              Usuario 2
-            </Button>
+        ) : (
+          <div className="w-1/2 m-20 flex justify-center items-center">
+            <HowItWorks />
           </div>
-        </div>
+        )}
         <div className="w-1/2 flex justify-center">
-          <img src={chat} alt="chat" className="h-[90vh]"/>
+          <img src={chat} alt="chat" className="h-[90vh]" />
         </div>
       </div>
       <article className="flex items-center relative">
