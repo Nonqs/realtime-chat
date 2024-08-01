@@ -174,8 +174,8 @@ export function Chat() {
                 <Paper
                   className="p-5 m-2 relative"
                   sx={{
-                    backgroundColor: "#2563eb",
-                    color: "white",
+                    backgroundColor: "#fafaf9",
+                    color: "black",
                   }}
                 >
                   <span>{message.message}</span>
@@ -186,7 +186,10 @@ export function Chat() {
               </article>
             ) : (
               <article className="flex w-auto justify-start">
-                <Paper className="relative p-5 m-2">
+                <Paper className="relative p-5 m-2" sx={{
+                    backgroundColor: "#0c0a09",
+                    color: "white",
+                  }}>
                   <span>{message.message}</span>
                   <small className="absolute bottom-1 right-1 text-xs">
                     {formatTime(message.timestamp)}
@@ -227,9 +230,9 @@ export function Chat() {
                 tabIndex={-1}
                 startIcon={<CloudUploadIcon />}
                 sx={{
-                  backgroundColor: "#2563eb",
+                  backgroundColor: "#0c0a09",
                   "&:hover": {
-                    backgroundColor: "#60a5fa",
+                    backgroundColor: "#a8a29e",
                   },
                   color: "white",
                 }}
@@ -281,11 +284,12 @@ export function Chat() {
                   component="label"
                   role={undefined}
                   variant="contained"
+                  className="w-1/3"
                   tabIndex={-1}
                   sx={{
-                    backgroundColor: "#2563eb",
+                    backgroundColor: "#0c0a09",
                     "&:hover": {
-                      backgroundColor: "#60a5fa",
+                      backgroundColor: "#a8a29e",
                     },
                     color: "white",
                   }}
@@ -296,6 +300,7 @@ export function Chat() {
                 <Button
                   component="label"
                   role={undefined}
+                  className="w-1/3"
                   variant="contained"
                   tabIndex={-1}
                   color={"error"}

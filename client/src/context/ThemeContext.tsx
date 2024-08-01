@@ -1,9 +1,10 @@
-import { createContext, useContext, useMemo, useState } from 'react';
-import { createTheme, ThemeProvider } from '@mui/material/styles';
+import { createContext, useContext, useMemo, useState, ReactNode } from 'react';
+import { createTheme, ThemeProvider} from '@mui/material/styles';
 import { amber } from '@mui/material/colors';
 import { CssBaseline } from '@mui/material';
 
-const getDesignTokens = (mode) => ({
+// Definimos el tipo de objeto de tokens de diseño
+const getDesignTokens = (mode: 'light' | 'dark'): object => ({
   palette: {
     mode,
     primary: {
@@ -37,16 +38,26 @@ const getDesignTokens = (mode) => ({
   },
 });
 
-const ThemeContext = createContext()
+// Definimos el tipo de contexto del tema
+interface ThemeContextType {
+  mode: 'light' | 'dark';
+  toggleTheme: () => void;
+}
 
-export const ThemeProviderComponent = ({ children }) => {
-  const [mode, setMode] = useState('light')
+const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
+
+interface ThemeProviderComponentProps {
+  children: ReactNode;
+}
+
+export const ThemeProviderComponent: React.FC<ThemeProviderComponentProps> = ({ children }) => {
+  const [mode, setMode] = useState<'light' | 'dark'>('light');
 
   const toggleTheme = () => {
-    setMode((prevMode) => (prevMode === 'light' ? 'dark' : 'light'))
-  }
+    setMode((prevMode) => (prevMode === 'light' ? 'dark' : 'light'));
+  };
 
-  const theme = useMemo(() => createTheme(getDesignTokens(mode)), [mode])
+  const theme = useMemo(() => createTheme(getDesignTokens(mode)), [mode]);
 
   return (
     <ThemeContext.Provider value={{ mode, toggleTheme }}>
@@ -55,7 +66,13 @@ export const ThemeProviderComponent = ({ children }) => {
         {children}
       </ThemeProvider>
     </ThemeContext.Provider>
-  )
-}
+  );
+};
 
-export const useThemeContext = () => useContext(ThemeContext)
+export const useThemeContext = (): ThemeContextType => {
+  const context = useContext(ThemeContext);
+  if (context === undefined) {
+    throw new Error('useThemeContext must be used within a ThemeProviderComponent');
+  }
+  return context;
+};
