@@ -13,6 +13,8 @@ export class AuthService {
   ) {}
 
   async createUser(name: string, password: string, res: Response) {
+
+    //TODO: Use bcrypt
     const newUser = new this.userModel({
       name,
       password,
@@ -42,14 +44,13 @@ export class AuthService {
     }
   }
 
-  async login(name: string, res: Response) {
+  async login(name: string,password:string, res: Response) {
     try {
-
-      let user = await this.userModel.findOne({ name, password: 'prueba123' });
+      let user = await this.userModel.findOne({ name, password: password });
 
       if (!user) {
-        
-        user = new this.userModel({ name, password: 'prueba123' });
+        //TODO: Use bcrypt
+        user = new this.userModel({ name, password: password });
         user = await user.save();
         console.log('Usuario guardado en MongoDB:', user);
       }
@@ -66,10 +67,11 @@ export class AuthService {
         user,
         token,
       };
-      
-      res.status(200).json(data);
-    } catch (e) {
 
+      res.status(200).json(data);
+
+      return true;
+    } catch (e) {
       console.error('Error procesando el login:', e);
       res.status(500).json({ message: 'Error procesando el login' });
     }

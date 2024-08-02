@@ -48,7 +48,6 @@ export class MessagesService {
     recipient: string
   ) {
 
-
     const newMessage = new this.messageModel({
       sender,
       recipient,

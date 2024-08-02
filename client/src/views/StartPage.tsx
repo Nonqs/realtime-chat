@@ -23,6 +23,7 @@ export default function StartPage() {
         `${CONST.API_CONSTANTS.BACKEND_URL}/auth/login`,
         {
           name,
+          password: CONST.USER_LOGIN.PASSWORD
         },
         { withCredentials: true }
       );

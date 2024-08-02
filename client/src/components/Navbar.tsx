@@ -14,7 +14,7 @@ export default function Navbar({
   const { mode } = useThemeContext();
 
   return (
-    <nav className="flex w-full drop-shadow-2xl">
+    <nav className="flex w-full drop-shadow-2xl absolute">
       <article
         onClick={handleUpdate}
         className="flex w-1/4 justify-start items-center"
