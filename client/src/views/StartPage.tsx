@@ -1,7 +1,7 @@
 import { Button, Divider } from "@mui/material";
 import CONST from "../services/config.d";
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useUserContext } from "../context/UserActiveContext";
 import Navbar from "../components/Navbar";
 import github from "../public/github.svg";
@@ -23,7 +23,7 @@ export default function StartPage() {
         `${CONST.API_CONSTANTS.BACKEND_URL}/auth/login`,
         {
           name,
-          password: CONST.USER_LOGIN.PASSWORD
+          password: CONST.USER_LOGIN.PASSWORD,
         },
         { withCredentials: true }
       );
@@ -100,48 +100,48 @@ export default function StartPage() {
                   Usuario 2
                 </Button>
               </div>
-              <Divider orientation="vertical" flexItem>Or</Divider>
+              <Divider orientation="vertical" flexItem>
+                Or
+              </Divider>
               <div className="w-1/2 flex flex-col text-center items-center">
                 <article>
                   <h3 className="text-xl font-semibold mb-5">Auth</h3>
                 </article>
-                <Button
-                  component="label"
-                  variant="contained"
-                  className="w-3/4"
-                  tabIndex={-1}
-                  sx={{
-                    backgroundColor: "#fafaf9",
-                    "&:hover": {
-                      backgroundColor: "#a8a29e",
-                    },
-                    color: "black",
-                    marginBottom: "2em",
-                  }}
-                  onClick={() => {
-                    handleLogin(CONST.USER_LOGIN.NAME);
-                  }}
-                >
-                  Login
-                </Button>
-                <Button
-                  component="label"
-                  variant="contained"
-                  tabIndex={-1}
-                  className="w-3/4"
-                  sx={{
-                    backgroundColor: "#0c0a09",
-                    "&:hover": {
-                      backgroundColor: "#a8a29e",
-                    },
-                    color: "white",
-                  }}
-                  onClick={() => {
-                    handleLogin(CONST.USER_LOGIN.NAME2);
-                  }}
-                >
-                  Register
-                </Button>
+                <Link to={"/auth/login"} className="w-full">
+                  <Button
+                    component="label"
+                    variant="contained"
+                    className="w-3/4"
+                    tabIndex={-1}
+                    sx={{
+                      backgroundColor: "#fafaf9",
+                      "&:hover": {
+                        backgroundColor: "#a8a29e",
+                      },
+                      color: "black",
+                      marginBottom: "2em",
+                    }}
+                  >
+                    Login
+                  </Button>
+                </Link>
+                <Link to={"/auth/register"} className="w-full ">
+                  <Button
+                    component="label"
+                    variant="contained"
+                    tabIndex={-1}
+                    className="w-3/4"
+                    sx={{
+                      backgroundColor: "#0c0a09",
+                      "&:hover": {
+                        backgroundColor: "#a8a29e",
+                      },
+                      color: "white",
+                    }}
+                  >
+                    Register
+                  </Button>
+                </Link>
               </div>
             </div>
           </div>
@@ -162,7 +162,11 @@ export default function StartPage() {
         >
           <div className="absolute bottom-0 w-full flex justify-center items-center">
             <article className="flex items-center justify-center rounded-lg w-40 p-2">
-              <img src={mode === "dark" ?(githubW):(github)} alt="Icono blanco y negro" className="w-8" />
+              <img
+                src={mode === "dark" ? githubW : github}
+                alt="Icono blanco y negro"
+                className="w-8"
+              />
               <span>@Nonqs</span>
             </article>
           </div>

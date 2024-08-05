@@ -162,9 +162,9 @@ export function Chat({ chat }: { chat: string }) {
   };
 
   return (
-    <div className="flex flex-col w-full h-full justify-end items-end">
-      <div className="w-full overflow-auto flex flex-col items-center h-full">
-        <div className="w-64 h-10 absolute z-10 bg-white mt-5 rounded-xl flex justify-center items-center">
+    <div className="flex flex-col w-full h-full">
+      <div className="w-full overflow-auto flex flex-col items-center h-full justify-end ">
+        <div className="w-64 h-10 absolute z-10 bg-white mt-5 rounded-xl flex justify-center items-center top-0">
             <span className="font-semibold text-black">@{chat}</span>
         </div>
         {chatMessages.map((message, index) => (
