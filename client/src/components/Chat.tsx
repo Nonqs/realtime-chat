@@ -11,12 +11,12 @@ import {
   Box,
   CircularProgress,
 } from "@mui/material";
-import { ChangeEvent, useEffect, useMemo, useState } from "react";
+import { ChangeEvent, useEffect, useState } from "react";
 import AddIcon from "@mui/icons-material/Add";
 import SendIcon from "@mui/icons-material/Send";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import axios from "axios";
-import { ChatMessages, Messages } from "../types/types";
+import { ChatMessages } from "../types/types";
 import CONST from "../services/config.d";
 import { useUserContext } from "../context/UserActiveContext";
 import { io } from "socket.io-client";
@@ -33,13 +33,65 @@ const VisuallyHiddenInput = styled("input")({
   width: 1,
 });
 
-export function Chat() {
+const modalStyle = {
+  position: "absolute",
+  top: "50%",
+  left: "50%",
+  transform: "translate(-50%, -50%)",
+  width: 400,
+  bgcolor: "background.paper",
+  boxShadow: 24,
+  p: 4,
+  borderRadius: "20px",
+};
+
+export function Chat({ chat }: { chat: string }) {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const { user } = useUserContext();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [openModal, setOpenModal] = useState(false);
   const [message, setMessage] = useState("");
   const [chatMessages, setChatMessages] = useState<ChatMessages[]>([]);
+
+  const socket = io(CONST.API_CONSTANTS.BACKEND_URL, {
+    withCredentials: true,
+    transports: ["websocket"],
+  });
+
+  useEffect(() => {
+    socket.on("connect", () => {});
+
+    socket.on("message", (data: ChatMessages) => {
+      console.log("Mensaje recibido del servidor:", data);
+      console.log(data);
+      setChatMessages((prevMessages) => [...prevMessages, data]);
+    });
+
+    socket.on("uploadStatus", (data: ChatMessages) => {
+      setOpenModal(false)
+      setChatMessages((prevMessages) => [...prevMessages, data])
+    });
+
+    socket.on("disconnect", () => {});
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [socket]);
+
+  useEffect(() => {
+    const getMessages = async () => {
+      const response = await axios.get(
+        `${CONST.API_CONSTANTS.BACKEND_URL}/messages/${chat}`,
+        { withCredentials: true }
+      );
+
+      const data = response.data;
+      setChatMessages(data);
+    };
+
+    getMessages();
+  }, [chat]);
 
   const handleOpenModal = () => setOpenModal(true);
   const handleCloseModal = () => setOpenModal(false);
@@ -51,18 +103,6 @@ export function Chat() {
     setAnchorEl(null);
   };
 
-  const modalStyle = {
-    position: "absolute",
-    top: "50%",
-    left: "50%",
-    transform: "translate(-50%, -50%)",
-    width: 400,
-    bgcolor: "background.paper",
-    boxShadow: 24,
-    p: 4,
-    borderRadius: "20px",
-  };
-
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       setSelectedFile(e.target.files[0]);
@@ -71,89 +111,46 @@ export function Chat() {
     }
   };
 
-  useEffect(() => {
-    const getMessages = async () => {
-      const response = await axios.get(
-        `${CONST.API_CONSTANTS.BACKEND_URL}/messages`,
-        { withCredentials: true }
-      );
-
-      const data = response.data;
-      setChatMessages(data);
-    };
-
-    getMessages();
-  }, []);
-
   const handleUploadImage = async () => {
     if (!selectedFile) return;
 
-    const formData = new FormData();
-    formData.append("file", selectedFile);
-    formData.append("sender", user);
-    formData.append("recipient", user == "Tomas" ? "Maya" : "Tomas");
-    try {
-      const response = await axios.post(
-        `${CONST.API_CONSTANTS.BACKEND_URL}/messages/image`,
-        formData,
+    const reader = new FileReader();
+    reader.onload = () => {
+      const arrayBuffer = reader.result as ArrayBuffer;
+      const buffer = new Uint8Array(arrayBuffer);
+
+      socket.emit(
+        "uploadImage",
         {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-          withCredentials: true,
-        }
+          recipient: chat,
+          sender: user,
+          file: buffer,
+        },
+        (status: { message: string }) => {}
       );
-      console.log("Imagen subida con éxito:", response.data);
-      setSelectedFile(null);
-      handleCloseModal();
-    } catch (error) {
-      console.error("Error subiendo la imagen", error);
-    }
-  };
-
-  const socket = useMemo(
-    () =>
-      io(CONST.API_CONSTANTS.BACKEND_URL, {
-        withCredentials: true, // Esto asegura que las cookies se envíen con la solicitud
-      }),
-    []
-  );
-
-  useEffect(() => {
-    socket.on("connect", () => {
-      console.log("Conectado al servidor WebSocket");
-    });
-
-    socket.on("message", (data: ChatMessages) => {
-      console.log("Mensaje recibido del servidor:", data);
-      setChatMessages((prevMessages) => [...prevMessages, data]);
-    });
-
-    socket.on("disconnect", () => {
-      console.log("Desconectado del servidor WebSocket");
-    });
-
-    return () => {
-      socket.disconnect();
     };
-  }, [socket]);
+    reader.readAsArrayBuffer(selectedFile);
+  };
 
   const handleUploadMessage = (e: React.FormEvent) => {
     e.preventDefault();
     if (!message) return;
 
     const newMessage: ChatMessages = {
-      _id: new Date().toISOString(), // Usa un identificador único real en producción
+      _id: new Date().toISOString(), 
       message,
-      recipient: user === "Tomas" ? "Maya" : "Tomas",
+      recipient: chat,
       sender: user,
       timestamp: new Date().toISOString(),
       type: "text",
     };
 
-    socket.emit("message", newMessage);
+    socket.emit("message", {
+      message,
+      recipient: chat,
+      sender: user,
+    });
 
-    // Actualizar el estado local inmediatamente
     setChatMessages((prevMessages) => [...prevMessages, newMessage]);
 
     setMessage("");
@@ -166,35 +163,71 @@ export function Chat() {
 
   return (
     <div className="flex flex-col w-full h-full justify-end items-end">
-      <div className="w-full">
+      <div className="w-full overflow-auto flex flex-col items-center h-full">
+        <div className="w-64 h-10 absolute z-10 bg-white mt-5 rounded-xl flex justify-center items-center">
+            <span className="font-semibold text-black">@{chat}</span>
+        </div>
         {chatMessages.map((message, index) => (
           <div key={index} className="w-full">
             {message.sender == user ? (
               <article className="flex w-auto justify-end">
-                <Paper
-                  className="p-5 m-2 relative"
-                  sx={{
-                    backgroundColor: "#fafaf9",
-                    color: "black",
-                  }}
-                >
-                  <span>{message.message}</span>
-                  <small className="absolute bottom-1 right-1 text-xs">
-                    {formatTime(message.timestamp)}
-                  </small>
-                </Paper>
+                {message.type === "text" ? (
+                  <Paper
+                    className="p-5 m-2 relative"
+                    sx={{
+                      backgroundColor: "#fafaf9",
+                      color: "black",
+                    }}
+                  >
+                    <span>{message.message}</span>
+                    <small className="absolute bottom-1 right-1 text-xs">
+                      {formatTime(message.timestamp)}
+                    </small>
+                  </Paper>
+                ) : (
+                  <Paper
+                    className="p-2 m-2 relative"
+                    sx={{
+                      backgroundColor: "#fafaf9",
+                      color: "black",
+                    }}
+                  >
+                    <img className="w-96" src={message.message} alt="" />
+                    <small className="absolute bottom-1 right-1 text-xs">
+                      {formatTime(message.timestamp)}
+                    </small>
+                  </Paper>
+                )}
               </article>
             ) : (
               <article className="flex w-auto justify-start">
-                <Paper className="relative p-5 m-2" sx={{
-                    backgroundColor: "#0c0a09",
-                    color: "white",
-                  }}>
-                  <span>{message.message}</span>
-                  <small className="absolute bottom-1 right-1 text-xs">
-                    {formatTime(message.timestamp)}
-                  </small>
-                </Paper>
+                {message.type === "text" ? (
+                  <Paper
+                    className="relative p-5 m-2"
+                    sx={{
+                      backgroundColor: "#0c0a09",
+                      color: "white",
+                    }}
+                  >
+                    <span>{message.message}</span>
+                    <small className="absolute bottom-1 right-1 text-xs">
+                      {formatTime(message.timestamp)}
+                    </small>
+                  </Paper>
+                ) : (
+                  <Paper
+                    className="relative p-2 m-2"
+                    sx={{
+                      backgroundColor: "#0c0a09",
+                      color: "white",
+                    }}
+                  >
+                    <img className="w-96" src={message.message} alt="" />
+                    <small className="absolute bottom-1 right-1 text-xs">
+                      {formatTime(message.timestamp)}
+                    </small>
+                  </Paper>
+                )}
               </article>
             )}
           </div>

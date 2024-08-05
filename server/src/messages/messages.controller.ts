@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Req, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Req, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
 import { MessagesService } from './messages.service';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
@@ -18,18 +18,9 @@ export class MessagesController {
     // }
 
     @UseGuards(JwtAuthGuard)
-    @Post("image")
-    @UseInterceptors(FileInterceptor('file', {
-        storage: diskStorage({
-            destination: './uploads',
-            filename: (req, file, cb) => {
-                const filename = `${Date.now()}${path.extname(file.originalname)}`
-                cb(null, filename);
-            },
-        }),
-    }))
-    newMessageImage(@UploadedFile() file: Express.Multer.File, @Req() req: Request){
-        return this.messageService.newMessageImage(file, req)
+    @Post()
+    newChatRoom(@Body("recipient") recipient: string,@Req() req: Request){
+        return this.messageService.newChatRoom(recipient, req)
     }
 
     @UseGuards(JwtAuthGuard)
@@ -39,8 +30,8 @@ export class MessagesController {
     }
 
     @UseGuards(JwtAuthGuard)
-    @Get()
-    getMessages(@Req() req: Request){
-        return this.messageService.getMessages(req)
+    @Get(":chat")
+    getMessages(@Req() req: Request, @Param("chat") chat:string){
+        return this.messageService.getMessages(req, chat)
     }
 }

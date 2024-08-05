@@ -1,21 +1,23 @@
+import { useState, useEffect } from "react";
 import { styled, Theme, CSSObject } from "@mui/material/styles";
 import MuiDrawer from "@mui/material/Drawer";
 import List from "@mui/material/List";
 import Divider from "@mui/material/Divider";
 import IconButton from "@mui/material/IconButton";
-import { deepOrange } from "@mui/material/colors";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import ListItem from "@mui/material/ListItem";
 import ListItemButton from "@mui/material/ListItemButton";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
-import { useEffect, useState } from "react";
-import { Avatar } from "@mui/material";
+import { Avatar, Button, Fade, Icon, Menu, MenuItem } from "@mui/material";
 import DarkMode from "./DarkModeSw";
 import SettingsIcon from "@mui/icons-material/Settings";
 import axios from "axios";
 import CONST from "../services/config.d";
+import Add from "@mui/icons-material/Add";
+import { useThemeContext } from "../context/ThemeContext";
+import { Users } from "../types/types";
 
 const drawerWidth = 240;
 
@@ -45,7 +47,6 @@ const DrawerHeader = styled("div")(({ theme }) => ({
   alignItems: "center",
   justifyContent: "flex-end",
   padding: theme.spacing(0, 1),
-  // necessary for content to be below app bar
   ...theme.mixins.toolbar,
 }));
 
@@ -66,9 +67,19 @@ const Drawer = styled(MuiDrawer, {
   }),
 }));
 
-export default function ChatsDrawer() {
-  const [open, setOpen] = useState(false);
-  const [chat, setChat] = useState("");
+export default function ChatsDrawer({
+  handleChangeChat,
+}: {
+  handleChangeChat: (chat: string) => void;
+}) {
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [chats, setChats] = useState<string[]>([]);
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [users, setUsers] = useState<Users[]>();
+  const { mode } = useThemeContext();
+
+  const buttonColor = mode === "dark" ? "white" : "black";
+  const buttonTextColor = mode === "dark" ? "black" : "white";
 
   useEffect(() => {
     const getChat = async () => {
@@ -77,28 +88,52 @@ export default function ChatsDrawer() {
         { withCredentials: true }
       );
       const data = response.data;
-      const firstLetter = data.charAt(0);
-
-      setChat(firstLetter);
+      setChats(data);
     };
 
     getChat();
   }, []);
 
+  const createChatRoom = async (recipient: string) => {
+    const response = await axios.post(
+      `${CONST.API_CONSTANTS.BACKEND_URL}/messages`,
+      { recipient },
+      { withCredentials: true }
+    );
+
+    const data = response.data;
+    console.log(data);
+    setChats((prevChats) => [...prevChats, data.name]);
+  };
+
   const handleDrawerOpen = () => {
-    setOpen(true);
+    setDrawerOpen(true);
   };
 
   const handleDrawerClose = () => {
-    setOpen(false);
+    setDrawerOpen(false);
+  };
+
+  const handleClick = async (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(event.currentTarget);
+
+    const response = await axios.get(
+      `${CONST.API_CONSTANTS.BACKEND_URL}/user/all`
+    );
+    const data = response.data;
+    setUsers(data);
+  };
+
+  const handleClose = () => {
+    setAnchorEl(null);
   };
 
   return (
     <div className="flex">
-      <Drawer variant="permanent" open={open}>
+      <Drawer variant="permanent" open={drawerOpen}>
         <DrawerHeader className="flex flex-col justify-center items-center mt-4">
           <List className="w-full flex flex-col items-center justify-center ">
-            {open ? (
+            {drawerOpen ? (
               <IconButton onClick={handleDrawerClose}>
                 <ChevronLeftIcon />
               </IconButton>
@@ -114,24 +149,94 @@ export default function ChatsDrawer() {
         </DrawerHeader>
         <Divider />
         <List className="w-full flex flex-col items-center justify-center ">
-          <article className="mb-2">
-            <Avatar>{chat}</Avatar>
-          </article>
+          {chats?.length >= 1 &&
+            chats.map((chat) => (
+              <article
+                onClick={() => handleChangeChat(chat)}
+                key={chat}
+                className="mb-2 w-full flex items-center justify-center"
+              >
+                <Avatar sx={{ color: "white" }} className={`${drawerOpen ?("ms-2"):("")}`}>{chat.charAt(0)}</Avatar>
+                {drawerOpen && (
+                  <span className="ms-2 flex-1 text-left">@{chat}</span>
+                )}
+              </article>
+            ))}
         </List>
         <Divider />
+        <List className="w-full flex flex-col items-center justify-center ">
+          {!drawerOpen ? (
+            <article>
+              <Icon onClick={handleClick} sx={{ fontSize: 30 }}>
+                add_circle
+              </Icon>
+            </article>
+          ) : (
+            <Button
+              variant="contained"
+              startIcon={<Add />}
+              sx={{
+                background: buttonColor,
+                color: buttonTextColor,
+                "&:hover": {
+                  backgroundColor: "#a8a29e",
+                },
+              }}
+              onClick={handleClick}
+            >
+              New Chat
+            </Button>
+          )}
+          <Menu
+            id="fade-menu"
+            MenuListProps={{
+              "aria-labelledby": "fade-button",
+            }}
+            anchorEl={anchorEl}
+            open={Boolean(anchorEl)}
+            onClose={handleClose}
+            TransitionComponent={Fade}
+            className="flex flex-col w-96 h-96"
+          >
+            <h4 className="mb-2 font-semibold">
+              Find a new person to chat with
+            </h4>
+            {users?.map((user, index) => (
+              <MenuItem key={user._id}>
+                <div
+                  className="w-full"
+                  onClick={() => createChatRoom(user.name)}
+                >
+                  <article className="flex items-center mb-1 mt-1 w-full">
+                    <Avatar sx={{ color: "white" }}>
+                      {user.name && user.name.charAt(0)}
+                    </Avatar>
+                    <span className="ms-2">{user.name}</span>
+                  </article>
+                  {index !== users.length - 1 && (
+                    <article className="w-full">
+                      <Divider />
+                    </article>
+                  )}
+                </div>
+              </MenuItem>
+            ))}
+          </Menu>
+        </List>
+
         <List className="h-full flex flex-col justify-end">
           <ListItem disablePadding sx={{ display: "block" }}>
             <ListItemButton
               sx={{
                 minHeight: 48,
-                justifyContent: open ? "initial" : "center",
+                justifyContent: drawerOpen ? "initial" : "center",
                 px: 2.5,
               }}
             >
               <ListItemIcon
                 sx={{
                   minWidth: 0,
-                  mr: open ? 3 : "auto",
+                  mr: drawerOpen ? 3 : "auto",
                   justifyContent: "center",
                 }}
               >
@@ -139,7 +244,7 @@ export default function ChatsDrawer() {
               </ListItemIcon>
               <ListItemText
                 primary={"Settings"}
-                sx={{ opacity: open ? 1 : 0 }}
+                sx={{ opacity: drawerOpen ? 1 : 0 }}
               />
             </ListItemButton>
           </ListItem>

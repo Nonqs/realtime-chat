@@ -3,8 +3,9 @@ const API_CONSTANTS = {
 };
 
 const USER_LOGIN = {
-  NAME: "Tomas",
-  NAME2: "Maya"
+  NAME: "Usuario1",
+  NAME2: "Usuario2",
+  PASSWORD:"DEVELOPMENT"
 };
 
 const CONST = { API_CONSTANTS, USER_LOGIN };

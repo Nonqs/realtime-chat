@@ -5,6 +5,7 @@ import { Model } from 'mongoose';
 import { Message, MessageDocument } from 'schemas/message.schema';
 import { DecodeDto } from './dto/messages.dto';
 import * as jwt from 'jsonwebtoken';
+import { ChatRoom, ChatRoomDocument } from 'schemas/chatroom.schema';
 import { User, UserDocument } from 'schemas/user.schema';
 
 @Injectable()
@@ -12,53 +13,60 @@ export class MessagesService {
   constructor(
     @InjectModel(Message.name) private messageModel: Model<MessageDocument>,
     @InjectModel(User.name) private userModel: Model<UserDocument>,
+    @InjectModel(ChatRoom.name) private chatModel: Model<ChatRoomDocument>,
   ) {}
 
-  async newMessageImage(
-    file: Express.Multer.File,
-    req: Request,
-  ) {
-
+  async newChatRoom(recipient: string, req: Request) {
     const token = req.headers.authorization.split(' ')[1];
     const decodeToken = jwt.decode(token) as DecodeDto;
 
-    const sender = decodeToken.name == "Tomas" ? "Tomas" : "Maya"
-    const recipient = decodeToken.name == "Tomas" ? "Maya" : "Tomas"
+    if (!decodeToken || !decodeToken.name) {
+      throw new Error('Invalid token');
+    }
 
-    const newMessage = new this.messageModel({
-      sender,
+    const newChat = new this.chatModel({
+      sender: decodeToken.name,
       recipient,
-      message: file.filename,
-      type: 'Image',
+      timestamp: new Date(),
     });
 
-    try {
-      const savedMessage = await newMessage.save();
-      console.log('Mensaje guardado en MongoDB:', savedMessage);
-      return { message: 'Mensaje guardado correctamente', savedMessage };
-    } catch (error) {
-      console.error('Error guardando el mensaje en MongoDB:', error);
-      throw error;
+    const saveChatRoom = await newChat.save();
+
+    const user = await this.userModel.findOne({ name: recipient }, 'name');
+
+    if (!user) {
+      throw new Error('Recipient not found');
     }
+
+    return user;
   }
 
-  async newMessageText(
-    message: string,
-    sender: string,
-    recipient: string
-  ) {
+  async newMessage(message: string, sender: string, recipient: string, type: string) {
+
+    const chatRoom = await this.chatModel.findOne(
+      {
+        $or: [
+          { sender, recipient },
+          { sender: recipient, recipient: sender },
+        ],
+      },
+      '_id',
+    );
+
 
     const newMessage = new this.messageModel({
+      
+      chatRoom: chatRoom._id,
       sender,
       recipient,
       message,
-      type: 'Text',
+      type,
     });
 
     try {
       const savedMessage = await newMessage.save();
       console.log('Mensaje guardado en MongoDB:', savedMessage);
-      return { message: 'Mensaje guardado correctamente', savedMessage };
+      return savedMessage
     } catch (error) {
       console.error('Error guardando el mensaje en MongoDB:', error);
       throw error;
@@ -69,26 +77,44 @@ export class MessagesService {
     const token = req.headers.authorization.split(' ')[1];
     const decodeToken = jwt.decode(token) as DecodeDto;
 
-    let user = await this.userModel.findOne({ name: decodeToken.name });
+    const userChats = await this.chatModel.find({
+      $or: [{ sender: decodeToken.name }, { recipient: decodeToken.name }],
+    });
 
-    if (user.name === 'Tomas') {
-      return 'Maya';
-    } else {
-      return 'Tomas';
-    }
+    const otherUsers = userChats.map((chat) => {
+      if (chat.sender === decodeToken.name) {
+        return chat.recipient;
+      } else {
+        return chat.sender;
+      }
+    });
+
+    return otherUsers;
   }
 
-  async getMessages(req: Request) {
+  async getMessages(req: Request, chat: string) {
     const token = req.headers.authorization.split(' ')[1];
     const decodeToken = jwt.decode(token) as DecodeDto;
 
-    let messages = await this.messageModel.find({
+    if (!decodeToken || !decodeToken.name) {
+      throw new Error('Invalid token');
+    }
+
+    const chatRoom = await this.chatModel.findOne({
       $or: [
-        { sender: decodeToken.name },
-        { recipient: decodeToken.name }
-      ]
+        { sender: decodeToken.name, recipient: chat },
+        { sender: chat, recipient: decodeToken.name },
+      ],
+    }, "_id");
+
+    if (!chatRoom) {
+      throw new Error('Chat room not found');
+    }
+
+    const messages = await this.messageModel.find({
+      chatRoom: chatRoom._id,
     });
 
-    return messages
+    return messages;
   }
 }

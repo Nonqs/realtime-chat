@@ -16,4 +16,9 @@ export class UserService {
 
     return decodeToken.name
   }
+
+  async getUsers() {
+    const users = await this.userModel.find({}, '_id name');
+    return users;
+  }
 }

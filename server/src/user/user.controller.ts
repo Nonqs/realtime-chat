@@ -14,6 +14,12 @@ export class UserController {
         return this.userService.getUser(req)
     }
 
+    @Get("all")
+    getUsers(){
+        return this.userService.getUsers()
+    }
+
+
 
     
 }

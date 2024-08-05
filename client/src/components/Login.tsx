@@ -17,7 +17,7 @@ export function Login() {
     e.preventDefault();
 
     try {
-      const response = await axios.post(
+      await axios.post(
         `${CONST.API_CONSTANTS.BACKEND_URL}/auth/login`,
         {
           name: username,
@@ -25,8 +25,6 @@ export function Login() {
         },
         { withCredentials: true }
       );
-
-      const data = response.data;
 
       navigate("/chat");
     } catch (error) {}

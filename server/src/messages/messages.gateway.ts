@@ -11,6 +11,9 @@ import { Server, Socket } from 'socket.io';
 import * as jwt from 'jsonwebtoken';
 import { MessagesService } from './messages.service';
 import { DecodeDto } from './dto/messages.dto';
+import { v4 as uuidv4 } from 'uuid';
+import { join } from 'path';
+import * as fs from 'fs';
 
 @WebSocketGateway({
   cors: {
@@ -18,6 +21,7 @@ import { DecodeDto } from './dto/messages.dto';
     methods: ['GET', 'POST'],
     credentials: true,
   },
+  maxHttpBufferSize: 10 * 1024 * 1024,
 })
 export class MessagesGateway
   implements OnGatewayConnection, OnGatewayDisconnect
@@ -27,7 +31,7 @@ export class MessagesGateway
 
   private users: Map<string, string> = new Map();
 
-  constructor(private readonly messageService: MessagesService) {}
+  constructor(private messageService: MessagesService) {}
 
   async handleConnection(client: Socket) {
     try {
@@ -67,17 +71,53 @@ export class MessagesGateway
     @MessageBody() data: { message: string; recipient: string; sender: string },
     @ConnectedSocket() client: Socket,
   ): Promise<void> {
-    console.log('Mensaje recibido:', data);
 
-    await this.messageService.newMessageText(
+    const message = await this.messageService.newMessage(
       data.message,
       data.sender,
       data.recipient,
+      "text"
     );
 
     const recipientSocketId = this.users.get(data.recipient);
     if (recipientSocketId) {
-      this.server.to(recipientSocketId).emit('message', data);
+      this.server.to(recipientSocketId).emit('message', message);
     }
+  }
+
+  @SubscribeMessage('uploadImage')
+  async handleFileUpload(
+    @MessageBody()
+    messageData: { sender: string; recipient: string; file: Buffer },
+    @ConnectedSocket() client: Socket,
+  ): Promise<void> {
+    const filename = uuidv4();
+    const filePath = join(
+      __dirname,
+      '..',
+      '..',
+      '..',
+      'uploads',
+      filename,
+    );
+
+    fs.writeFile(filePath, messageData.file, async (err) => {
+      const callback = (status) => {
+        client.emit('uploadStatus', status);
+      };
+      if (err) {
+        console.log(err);
+        return callback(filename);
+      }
+
+      const recipientSocketId = this.users.get(messageData.recipient);
+      if (recipientSocketId) {
+        this.server.to(recipientSocketId).emit('message', messageData.file);
+      }
+
+      const savedImage = await this.messageService.newMessage(`http://localhost:3000/uploads/${filename}` ,messageData.sender, messageData.recipient, "image");
+
+      callback(savedImage);
+    });
   }
 }

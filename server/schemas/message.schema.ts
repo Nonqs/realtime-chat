@@ -13,6 +13,12 @@ export class Message {
     @Prop({ type: Types.ObjectId, ref: 'ChatRoom', required: true })
     chatRoom: string
 
+    @Prop({ type: Types.ObjectId, ref: 'User', required: true })
+    sender: string
+
+    @Prop({ type: Types.ObjectId, ref: 'User', required: true })
+    recipient: string
+
     @Prop({ default: Date.now })
     timestamp: Date;
 
